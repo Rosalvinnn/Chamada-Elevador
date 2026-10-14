@@ -1,0 +1,19 @@
+{
+  "name": "elevador-conectado",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sistema web de monitoramento e atendimento de chamadas de áudio dos elevadores de uma universidade (versão demonstrativa).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node scripts/test-fluxos.mjs",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}
