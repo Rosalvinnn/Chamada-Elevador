@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "next": "16.4.0",
+    "peerjs": "^1.5.5",
+    "peers": "^0.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   }

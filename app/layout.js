@@ -1,8 +1,3 @@
-/**
- * Layout principal da aplicação (compartilhado por todas as páginas).
- * Ele monta o menu lateral, o "provedor" do estado global,
- * os avisos flutuantes e carrega o CSS.
- */
 
 import "./globals.css";
 
@@ -11,9 +6,9 @@ import Toast from "@/components/Toast";
 import { CallCenterProvider } from "@/context/CallCenterContext";
 
 export const metadata = {
-  title: "Elevador Conectado | Painel de Chamadas",
+  title: "UNICAP Conecta | Central de Chamadas",
   description:
-    "Sistema de monitoramento e atendimento de chamadas dos elevadores da universidade (versão demonstrativa).",
+    "Sistema de comunicação e atendimento dos elevadores do Bloco A da UNICAP.",
 };
 
 export default function RootLayout({ children }) {

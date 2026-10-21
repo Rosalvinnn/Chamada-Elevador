@@ -17,29 +17,33 @@
    ============================================================ */
 
 /* ---------- 1. Variáveis ---------- */
+
 :root {
-  --navy-900: #0d1b3e;
-  --navy-800: #12224a;
-  --navy-700: #1b2f63;
-  --blue-600: #2563eb;
-  --blue-100: #dbeafe;
+  --navy-900: #71143b;
+  --navy-800: #9e2155;
+  --navy-700: #ba1e5c;
+
+  --blue-600: #9d194c;
+  --blue-100: #f4e7ec;
+
   --green-600: #16a34a;
   --green-100: #dcfce7;
+
   --amber-600: #d97706;
   --amber-100: #fef3c7;
+
   --red-600: #dc2626;
   --red-100: #fee2e2;
-  --gray-50: #f6f7fb;
-  --gray-100: #eef1f7;
-  --gray-300: #d5dbe8;
-  --gray-500: #64748b;
-  --gray-700: #334155;
-  --gray-900: #0f172a;
-  --white: #ffffff;
-  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.06);
-  --radius: 14px;
-  --radius-sm: 8px;
+
+  --gray-50: #faf7f8;
+  --gray-100: #f4eef1;
+  --gray-200: #eadde2;
+  --gray-300: #d8c5cd;
+  --gray-500: #806c75;
+  --gray-700: #493640;
+  --gray-900: #281820;
 }
+
 
 /* ---------- 2. Reset e base ---------- */
 * {
@@ -134,14 +138,14 @@ ul {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9fb3dd;
+  color: hsl(70, 83%, 36%);
 }
 
 .sidebar__section-label {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #7f95c6;
+  color: #eedc11;
 }
 
 .sidebar__nav {
@@ -156,7 +160,7 @@ ul {
   gap: 12px;
   padding: 11px 14px;
   border-radius: var(--radius-sm);
-  color: #d7e0f5;
+  color: #a9c01a;
   text-decoration: none;
   font-size: 14px;
   transition: background 0.15s ease, color 0.15s ease;
@@ -198,7 +202,7 @@ ul {
 .sidebar__footer-text {
   margin-top: 8px;
   font-size: 12px;
-  color: #9fb3dd;
+  color: #d5bb0e;
 }
 
 /* ---------- 4. Cabeçalho da página ---------- */
@@ -238,7 +242,7 @@ ul {
 .chip--info {
   background: var(--blue-100);
   color: var(--blue-600);
-  border-color: #bfdbfe;
+  border-color: #9ce613;
 }
 
 .chip--warning {

@@ -1,18 +1,15 @@
-"use client";
 
-/**
- * Menu lateral escuro com a navegação principal.
- * O item ativo é destacado de acordo com a página atual.
- */
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: "▦" },
+  { href: "/", label: "Visão geral", icon: "▦" },
   { href: "/elevadores", label: "Elevadores", icon: "⇅" },
-  { href: "/historico", label: "Histórico de Chamadas", icon: "🕘" },
+  { href: "/historico", label: "Histórico", icon: "◷" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
+  { href: "/teste-audio", label: "Audio", icon: "" },
 ];
 
 export default function Sidebar() {
@@ -22,15 +19,18 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar__brand">
         <span className="sidebar__logo" aria-hidden="true">
-          ⇅
+          U
         </span>
+
         <div>
-          <p className="sidebar__title">Elevador Conectado</p>
-          <p className="sidebar__subtitle">Campus Central — Sorocaba</p>
+          <p className="sidebar__title">UNICAP Conecta</p>
+          <p className="sidebar__subtitle">Central de chamadas</p>
         </div>
       </div>
 
-      <p className="sidebar__section-label">Monitoramento Operacional</p>
+      <p className="sidebar__section-label">
+        Universidade Católica de Pernambuco
+      </p>
 
       <nav aria-label="Navegação principal">
         <ul className="sidebar__nav">
@@ -49,9 +49,13 @@ export default function Sidebar() {
                   }`}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <span aria-hidden="true" className="sidebar__icon">
+                  <span
+                    aria-hidden="true"
+                    className="sidebar__icon"
+                  >
                     {item.icon}
                   </span>
+
                   {item.label}
                 </Link>
               </li>
@@ -63,7 +67,7 @@ export default function Sidebar() {
       <div className="sidebar__footer">
         <p className="sidebar__demo-tag">Modo demonstração</p>
         <p className="sidebar__footer-text">
-          Chamadas simuladas — sem áudio real.
+          Sistema de comunicação dos elevadores do Bloco A.
         </p>
       </div>
     </aside>
