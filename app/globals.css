@@ -1,25 +1,6 @@
-/* ============================================================
-   ESTILOS GLOBAIS — Elevador Conectado
-   ------------------------------------------------------------
-   Organização do arquivo:
-     1. Variáveis de cor e tipografia
-     2. Reset e estilos base
-     3. Estrutura do aplicativo (sidebar + conteúdo)
-     4. Cabeçalho da página e chips
-     5. Cards de resumo
-     6. Painel de chamada
-     7. Cards de elevadores e lista de dispositivos
-     8. Tabela de histórico
-     9. Configurações
-    10. Avisos flutuantes (toasts)
-    11. Botões, campos e utilitários
-    12. Responsividade e acessibilidade
-   ============================================================ */
-
-/* ---------- 1. Variáveis ---------- */
 
 :root {
-  --navy-900: #71143b;
+  --navy-900: #e80b67;
   --navy-800: #9e2155;
   --navy-700: #ba1e5c;
 
@@ -915,164 +896,634 @@ ul {
   }
 }
 
+/* Login administrativo */
 
-/* ---------- Login administrativo ---------- */
-
-.login-page {
+.login-container {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 32px 20px;
-  background:
-    radial-gradient(ellipse at top, #f4e7ec 0%, transparent 55%),
-    var(--gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f7f5f4;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .login-card {
   width: 100%;
   max-width: 440px;
-  padding: 36px;
+  padding: 38px;
   background: #ffffff;
-  border: 1px solid var(--gray-200);
-  border-radius: 16px;
-  box-shadow: 0 12px 36px rgba(113, 20, 59, 0.08);
+  border: 1px solid #e9e2e1;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(64, 24, 35, 0.07);
 }
 
-.login-brand {
+.logo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--navy-900);
-  font-size: 15px;
-  font-weight: 800;
+  gap: 13px;
+  margin-bottom: 42px;
 }
 
-.login-logo {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 11px;
-  background: var(--navy-900);
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #781f3b;
   color: #ffffff;
-  font-size: 26px;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.logo h1 {
+  margin: 0;
+  color: #321923;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.logo p {
+  margin: 5px 0 0;
+  color: #82757a;
+  font-size: 12px;
 }
 
 .login-heading {
-  margin-top: 36px;
+  margin-bottom: 28px;
 }
 
-.login-eyebrow {
-  color: var(--blue-600);
+.login-label {
+  color: #8a2947;
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 1.5px;
 }
 
-.login-heading h1 {
-  margin-top: 9px;
+.login-heading h2 {
+  margin: 12px 0 8px;
+  color: #321923;
   font-size: 27px;
-  line-height: 1.25;
-  color: var(--gray-900);
+  letter-spacing: -0.7px;
 }
 
 .login-heading p {
-  margin-top: 10px;
-  color: var(--gray-500);
+  margin: 0;
+  color: #82757a;
   font-size: 14px;
   line-height: 1.6;
 }
 
-.login-form {
+.login-card form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-top: 28px;
 }
 
-.login-field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.login-field label {
-  color: var(--gray-700);
+.login-card form label {
+  margin: 0 0 8px;
+  color: #44343a;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.login-field input {
+.login-card form input {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--gray-300);
-  border-radius: 8px;
+  box-sizing: border-box;
+  height: 47px;
+  margin-bottom: 21px;
+  padding: 0 13px;
+  border: 1px solid #ded6d8;
+  border-radius: 9px;
   background: #ffffff;
-  color: var(--gray-900);
-  font: inherit;
+  color: #321923;
   font-size: 14px;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.login-field input::placeholder {
-  color: #a08d95;
-}
-
-.login-field input:focus {
   outline: none;
-  border-color: var(--blue-600);
-  box-shadow: 0 0 0 3px rgba(157, 25, 76, 0.1);
 }
 
-.login-submit {
-  width: 100%;
-  margin-top: 4px;
-  padding: 13px 16px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--navy-900);
+.login-card form input:focus {
+  border-color: #8a2947;
+  box-shadow: 0 0 0 3px rgba(138, 41, 71, 0.1);
+}
+
+.login-card form button {
+  height: 48px;
+  margin-top: 3px;
+  border: none;
+  border-radius: 9px;
+  background: #781f3b;
   color: #ffffff;
-  font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.2s;
 }
 
-.login-submit:hover:not(:disabled) {
-  background: var(--navy-800);
+.login-card form button:hover {
+  background: #5e172e;
 }
 
-.login-submit:disabled {
+.login-card form button:disabled {
   opacity: 0.65;
   cursor: wait;
 }
 
 .login-error {
-  padding: 11px 12px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  background: var(--red-100);
-  color: var(--red-600);
+  margin: -7px 0 17px;
+  color: #b42336;
   font-size: 13px;
 }
 
 .login-footer {
-  margin-top: 26px;
-  padding-top: 18px;
-  border-top: 1px solid var(--gray-100);
-  color: var(--gray-500);
-  font-size: 12px;
+  margin: 25px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid #eee8e9;
+  color: #93858a;
+  font-size: 11px;
+  line-height: 1.6;
   text-align: center;
 }
 
 @media (max-width: 480px) {
+  .login-container {
+    padding: 16px;
+  }
+
   .login-card {
     padding: 26px 22px;
   }
 
-  .login-heading h1 {
+  .logo {
+    margin-bottom: 34px;
+  }
+
+  .login-heading h2 {
     font-size: 24px;
   }
 }
 
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f7f5f4;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  box-sizing: border-box;
+  padding: 36px;
+  background: #fff;
+  border: 1px solid #e9e2e1;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(64, 24, 35, 0.07);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 40px;
+}
+
+.login-logo {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #781f3b;
+  color: #fff;
+  font-weight: 700;
+}
+
+.login-brand h1 {
+  margin: 0;
+  color: #321923;
+  font-size: 17px;
+}
+
+.login-brand p {
+  margin: 5px 0 0;
+  color: #82757a;
+  font-size: 12px;
+}
+
+.login-heading {
+  margin-bottom: 26px;
+}
+
+.login-label {
+  color: #8a2947;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.login-heading h2 {
+  margin: 12px 0 8px;
+  color: #321923;
+  font-size: 27px;
+}
+
+.login-heading p {
+  margin: 0;
+  color: #82757a;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-card form label {
+  margin-bottom: 8px;
+  color: #44343a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.login-card form input {
+  width: 100%;
+  height: 47px;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+  padding: 0 13px;
+  border: 1px solid #ded6d8;
+  border-radius: 9px;
+  background: #fff;
+  color: #321923;
+  font-size: 14px;
+  outline: none;
+}
+
+.login-card form input:focus {
+  border-color: #8a2947;
+  box-shadow: 0 0 0 3px rgba(138, 41, 71, 0.1);
+}
+
+.login-card form button {
+  height: 48px;
+  margin-top: 3px;
+  border: 0;
+  border-radius: 9px;
+  background: #781f3b;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-card form button:hover {
+  background: #5e172e;
+}
+
+.login-card form button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.login-error {
+  margin: -5px 0 16px;
+  color: #b42336;
+  font-size: 13px;
+}
+
+.login-footer {
+  margin: 24px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid #eee8e9;
+  color: #93858a;
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 26px 22px;
+  }
+
+  .login-heading h2 {
+    font-size: 24px;
+  }
+}
+
+
+/* ==========================================
+   UNICAP CONECTA — REFINAMENTO VISUAL
+   Identidade institucional bordô e vinho
+========================================== */
+
+:root {
+  --navy-900: #781f3b;
+  --navy-800: #5e172e;
+  --navy-700: #923653;
+
+  --blue-600: #8a2947;
+  --blue-100: #f7eef1;
+
+  --gray-50: #f7f5f4;
+  --gray-100: #f0ebea;
+  --gray-200: #e8dfe1;
+  --gray-300: #d8c8ce;
+  --gray-500: #82757a;
+  --gray-700: #49343c;
+  --gray-900: #321923;
+
+  --white: #ffffff;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+
+  --shadow: 0 4px 16px rgba(50, 25, 35, 0.045);
+}
+
+/* FUNDO E ESTRUTURA */
+
+body {
+  background: #f7f5f4;
+  color: #321923;
+}
+
+.app-content {
+  background: #f7f5f4;
+  padding: 34px 40px 48px;
+}
+
+.page {
+  gap: 32px;
+}
+
+/* MENU LATERAL */
+
+.sidebar {
+  background: linear-gradient(
+    180deg,
+    #781f3b 0%,
+    #5e172e 100%
+  );
+  color: #ffffff;
+  padding: 24px 18px;
+}
+
+.sidebar__logo {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.sidebar__subtitle {
+  color: #e8c5d0;
+}
+
+.sidebar__section-label {
+  color: #e8c5d0;
+}
+
+.sidebar__link {
+  color: #f1dce3;
+  border-radius: 9px;
+  padding: 12px 14px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+}
+
+.sidebar__link--active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.sidebar__demo-tag {
+  background: #e9a23b;
+  color: #321923;
+}
+
+.sidebar__footer-text {
+  color: #e8c5d0;
+}
+
+/* CABEÇALHOS */
+
+.page-header__title {
+  color: #321923;
+  letter-spacing: -0.7px;
+}
+
+.page-header__description {
+  color: #82757a;
+  line-height: 1.7;
+}
+
+.section-title {
+  color: #321923;
+  letter-spacing: -0.3px;
+}
+
+.section-hint {
+  color: #82757a;
+}
+
+/* PAINEL DE CHAMADAS */
+
+.call-panel {
+  border-radius: 16px;
+  padding: 28px;
+  gap: 20px;
+}
+
+.call-panel--incoming {
+  background: linear-gradient(
+    135deg,
+    #781f3b 0%,
+    #5e172e 100%
+  );
+  border: none;
+  box-shadow: 0 8px 24px rgba(120, 31, 59, 0.13);
+}
+
+.call-panel--empty {
+  background: #ffffff;
+  border: 1px solid #e8dfe1;
+  border-left: 4px solid #8a2947;
+}
+
+.call-panel--active {
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid #16a34a;
+}
+
+.call-panel__title {
+  letter-spacing: -0.2px;
+  text-transform: none;
+  font-size: 20px;
+}
+
+.call-panel__elevator {
+  font-size: 27px;
+}
+
+/* AGRUPAMENTO DOS ELEVADORES */
+
+.elevator-block-section {
+  margin-top: 28px;
+}
+
+.elevator-block-section > .section-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e8dfe1;
+  margin-bottom: 18px;
+}
+
+.elevator-block-section .section-title {
+  font-size: 19px;
+}
+
+/* CARTÕES DOS ELEVADORES */
+
+.elevator-card {
+  background: #ffffff;
+  border: 1px solid #e8dfe1;
+  border-radius: 14px;
+  padding: 22px;
+  gap: 16px;
+  box-shadow: 0 3px 12px rgba(50, 25, 35, 0.035);
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.elevator-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(50, 25, 35, 0.08);
+  border-color: #c9a5b1;
+}
+
+.elevator-card__name {
+  color: #321923;
+  font-size: 18px;
+}
+
+.elevator-card__block {
+  color: #8a2947;
+}
+
+.elevator-card__details {
+  border-top-color: #eee7e9;
+}
+
+/* DISPOSITIVOS */
+
+.device-row {
+  background: #ffffff;
+  border: 1px solid #e8dfe1;
+  border-radius: 12px;
+  padding: 17px 20px;
+  box-shadow: var(--shadow);
+}
+
+/* CARDS DE RESUMO */
+
+.summary-card {
+  border: 1px solid #e8dfe1;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  border-top: 3px solid #8a2947;
+}
+
+/* BOTÕES */
+
+.button {
+  border-radius: 9px;
+  transition: background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.button--primary,
+.button--info {
+  background: #781f3b;
+}
+
+.button--primary:hover:not(:disabled),
+.button--info:hover:not(:disabled) {
+  background: #5e172e;
+  box-shadow: 0 4px 12px rgba(120, 31, 59, 0.16);
+}
+
+.button--outline {
+  border-color: #d8c8ce;
+  color: #781f3b;
+}
+
+.button--outline:hover:not(:disabled) {
+  background: #f7eef1;
+  border-color: #8a2947;
+}
+
+/* TABELAS */
+
+.table-wrapper {
+  border-radius: 14px;
+  border-color: #e8dfe1;
+}
+
+.history-table thead th {
+  background: #f7eef1;
+  color: #781f3b;
+}
+
+/* CAMPOS */
+
+.field__input:focus {
+  outline: 2px solid #8a2947;
+  border-color: #8a2947;
+}
+
+/* RESPONSIVIDADE */
+
+@media (max-width: 900px) {
+  .app-content {
+    padding: 24px 20px 40px;
+  }
+
+  .sidebar {
+    background: linear-gradient(
+      180deg,
+      #781f3b 0%,
+      #5e172e 100%
+    );
+  }
+}
+
+@media (max-width: 480px) {
+  .app-content {
+    padding: 20px 14px 32px;
+  }
+
+  .elevator-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .call-panel {
+    padding: 20px;
+  }
+}

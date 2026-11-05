@@ -72,7 +72,9 @@ export default function HistoryTable({ limit }) {
                   <StatusBadge label={statusInfo.label} tone={statusInfo.tone} />
                 </td>
                 <td>
-                  <span className="tag-demo">Demonstração</span>
+                <span className="tag-demo">
+                  {call.origin || `${call.elevatorName} — ${call.block}`}
+                </span>
                 </td>
               </tr>
             );

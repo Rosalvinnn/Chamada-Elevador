@@ -64,12 +64,6 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="sidebar__footer">
-        <p className="sidebar__demo-tag">Modo demonstração</p>
-        <p className="sidebar__footer-text">
-          Sistema de comunicação dos elevadores do Bloco A.
-        </p>
-      </div>
     </aside>
   );
 }

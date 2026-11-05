@@ -1,4 +1,3 @@
-
 "use client";
 
 import CallPanel from "@/components/CallPanel";
@@ -10,12 +9,12 @@ export default function DashboardPage() {
     <div className="page dashboard-page">
       <PageHeader
         title="Central de chamadas"
-        description="Comunicação de apoio dos elevadores do Bloco A da UNICAP."
+        description="Comunicação de apoio dos elevadores da UNICAP."
       />
 
       <CallPanel />
 
-      <ElevatorList title="Elevadores do Bloco A" />
+      <ElevatorList title="Elevadores Unicap" />
     </div>
   );
 }
