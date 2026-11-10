@@ -140,7 +140,7 @@ export function CallCenterProvider({ children }) {
   const salvarHistorico = useCallback(async (call, status) => {
     console.log("TENTANDO SALVAR:", call, status);
 
-  const endedAt = Date.now();
+    const endedAt = Date.now();
 
     const waitSeconds = call.answeredAt
       ? Math.max(
@@ -173,7 +173,6 @@ export function CallCenterProvider({ children }) {
     };
 
     try {
-
       console.log("ENVIANDO PARA API:", registro);
 
       const resposta = await fetch("/api/historico", {
@@ -188,14 +187,15 @@ export function CallCenterProvider({ children }) {
 
       if (!resposta.ok || !dados.sucesso) {
         console.error("Não foi possível salvar a chamada:", dados);
+
         pushToast(
           "A chamada foi finalizada, mas não foi possível salvar no banco.",
           "error"
         );
+
         return false;
       }
 
-      // Atualiza o ID temporário com o ID real do Back4App
       dispatch({
         type: "UPDATE_HISTORY_ID",
         temporaryId: call.id,
@@ -240,6 +240,88 @@ export function CallCenterProvider({ children }) {
     },
     [state.elevators, state.activeCall, pushToast]
   );
+
+  // Consulta chamadas físicas pendentes automaticamente.
+  useEffect(() => {
+    if (state.activeCall || !state.elevators.length) {
+      return;
+    }
+
+    let ativo = true;
+    let buscando = false;
+
+    async function verificarChamadas() {
+      if (buscando) return;
+
+      buscando = true;
+
+      try {
+        const resposta = await fetch("/api/chamadas/pendentes", {
+          cache: "no-store",
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+          console.error("Erro ao consultar chamadas pendentes:", dados);
+          return;
+        }
+
+        if (!ativo || !dados.solicitacoes?.length) {
+          return;
+        }
+
+        const solicitacao = dados.solicitacoes.find((item) =>
+          state.elevators.some(
+            (elevador) => elevador.id === item.elevadorId
+          )
+        );
+
+        if (!solicitacao) {
+          return;
+        }
+
+        // Marca a solicitação como entregue ao painel.
+        const respostaConfirmacao = await fetch(
+          "/api/chamadas/pendentes",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: solicitacao.id,
+            }),
+          }
+        );
+
+        const confirmacao = await respostaConfirmacao.json();
+
+        if (!respostaConfirmacao.ok || !confirmacao.sucesso) {
+          console.error("Erro ao confirmar solicitação:", confirmacao);
+          return;
+        }
+
+        if (!ativo) return;
+
+        // Transforma a solicitação física em chamada no painel.
+        simulateCall(solicitacao.elevadorId);
+      } catch (erro) {
+        console.error("Erro ao verificar chamadas físicas:", erro);
+      } finally {
+        buscando = false;
+      }
+    }
+
+    verificarChamadas();
+
+    const intervalo = setInterval(verificarChamadas, 3000);
+
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
+  }, [state.elevators, state.activeCall, simulateCall]);
 
   const answerCall = useCallback(() => {
     if (!state.activeCall || state.activeCall.status !== "waiting") {
