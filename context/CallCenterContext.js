@@ -49,6 +49,7 @@ export function CallCenterProvider({ children }) {
           name: `Elevador ${elevador.numero}`,
           block: elevador.bloco,
           location: `Bloco ${elevador.bloco}`,
+          peerId: elevador.peerId || null,
           status: "available",
           lastInspection: "—",
           noiseLevel: 0,

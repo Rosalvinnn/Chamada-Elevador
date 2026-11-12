@@ -26,7 +26,7 @@ export default function TesteAudioPage() {
 
         if (!active) return;
 
-        const peer = new Peer(undefined, {
+        const peer = new Peer("unicap-elevador-bloco-a-1", {
           config: {
             iceServers: [
               {
