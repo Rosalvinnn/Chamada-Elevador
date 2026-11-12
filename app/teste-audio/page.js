@@ -3,9 +3,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
+const ELEVATOR_PEER_ID = "unicap-elevador-bloco-a-1";
+
 export default function TesteAudioPage() {
+  const [mode, setMode] = useState("elevador");
   const [myId, setMyId] = useState("");
-  const [remoteId, setRemoteId] = useState("");
+  const [remoteId, setRemoteId] = useState(ELEVATOR_PEER_ID);
   const [status, setStatus] = useState("Conectando ao serviço...");
   const [incoming, setIncoming] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -26,22 +29,30 @@ export default function TesteAudioPage() {
 
         if (!active) return;
 
-        const peer = new Peer("unicap-elevador-bloco-a-1", {
-          config: {
-            iceServers: [
-              {
-                urls: "stun:stun.l.google.com:19302",
-              },
-            ],
-          },
-        });
+        const peer = new Peer(
+          mode === "elevador" ? ELEVATOR_PEER_ID : undefined,
+          {
+            config: {
+              iceServers: [
+                {
+                  urls: "stun:stun.l.google.com:19302",
+                },
+              ],
+            },
+          }
+        );
 
         peerRef.current = peer;
 
         peer.on("open", (id) => {
           if (!active) return;
+
           setMyId(id);
-          setStatus("Pronto para conectar");
+          setStatus(
+            mode === "elevador"
+              ? "Elevador conectado e aguardando chamadas"
+              : "Central conectada e pronta para ligar"
+          );
         });
 
         peer.on("call", (call) => {
@@ -57,34 +68,66 @@ export default function TesteAudioPage() {
 
         peer.on("error", (err) => {
           if (!active) return;
-          setError(err.message || "Erro de conexão.");
+
+          console.error("Erro PeerJS:", err);
+
+          if (err.type === "unavailable-id") {
+            setError(
+              "Este ID já está sendo usado. Feche a outra sessão do elevador."
+            );
+          } else {
+            setError(err.message || "Erro de conexão.");
+          }
+
           setStatus("Falha na conexão");
         });
-
-      } catch {
+      } catch (err) {
         if (active) {
-          setError("Não foi possível iniciar o serviço de chamadas.");
+          setError(
+            err.message || "Não foi possível iniciar o serviço de chamadas."
+          );
           setStatus("Erro ao iniciar");
         }
       }
     }
+
+    setMyId("");
+    setError("");
+    setIncoming(false);
+    setConnected(false);
+    setStatus("Conectando ao serviço...");
 
     setup();
 
     return () => {
       active = false;
 
-      if (callRef.current) callRef.current.close();
-
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => {
-          track.stop();
-        });
+      if (callRef.current) {
+        callRef.current.close();
+        callRef.current = null;
       }
 
-      if (peerRef.current) peerRef.current.destroy();
+      if (incomingCallRef.current) {
+        incomingCallRef.current.close();
+        incomingCallRef.current = null;
+      }
+
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+        localStreamRef.current = null;
+      }
+
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.pause();
+        remoteAudioRef.current.srcObject = null;
+      }
+
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
     };
-  }, []);
+  }, [mode]);
 
   async function getMicrophone() {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -127,6 +170,19 @@ export default function TesteAudioPage() {
     });
 
     call.on("close", () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+        localStreamRef.current = null;
+      }
+
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.pause();
+        remoteAudioRef.current.srcObject = null;
+      }
+
+      callRef.current = null;
+      incomingCallRef.current = null;
+
       setConnected(false);
       setIncoming(false);
       setStatus("Ligação encerrada");
@@ -142,21 +198,21 @@ export default function TesteAudioPage() {
       setError("");
 
       if (!remoteId.trim()) {
-        setError("Digite o código do outro dispositivo.");
+        setError("Digite o código do elevador.");
         return;
       }
 
       setStatus("Solicitando acesso ao microfone...");
 
       const stream = await getMicrophone();
-      const call = peerRef.current.call(remoteId.trim(), stream);
+      const call = peerRef.current?.call(remoteId.trim(), stream);
 
       if (!call) {
         throw new Error("Não foi possível iniciar a chamada.");
       }
 
       listenToCall(call);
-      setStatus("Chamando o outro dispositivo...");
+      setStatus("Chamando o elevador...");
     } catch (err) {
       setError(err.message || "Não foi possível iniciar a chamada.");
       setStatus("Não foi possível ligar");
@@ -199,10 +255,7 @@ export default function TesteAudioPage() {
     }
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
-      });
-
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
     }
 
@@ -241,9 +294,31 @@ export default function TesteAudioPage() {
       <h1>Teste de chamada de áudio</h1>
 
       <p style={{ color: "#806c75" }}>
-        Use o computador e o celular para simular uma ligação
-        entre o elevador e a sala de atendimento.
+        Escolha se este dispositivo representará o elevador ou a central.
       </p>
+
+      <section
+        style={{
+          display: "flex",
+          gap: 10,
+          marginTop: 20,
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          onClick={() => setMode("elevador")}
+          disabled={mode === "elevador"}
+        >
+          Modo Elevador
+        </button>
+
+        <button
+          onClick={() => setMode("central")}
+          disabled={mode === "central"}
+        >
+          Modo Central
+        </button>
+      </section>
 
       <section
         style={{
@@ -253,62 +328,65 @@ export default function TesteAudioPage() {
           marginTop: 24,
         }}
       >
-        <h2>1. Seu código de conexão</h2>
+        <h2>1. Identificação do dispositivo</h2>
 
-        <p>Este código identifica o dispositivo atual.</p>
+        <p>
+          {mode === "elevador"
+            ? "Este dispositivo representa o Elevador 1 do Bloco A."
+            : "Este dispositivo representa a central de atendimento."}
+        </p>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <code
-            style={{
-              padding: 12,
-              background: "#fff",
-              borderRadius: 8,
-              overflowWrap: "anywhere",
-            }}
-          >
-            {myId || "Gerando código..."}
-          </code>
-
-          <button onClick={copyId} disabled={!myId}>
-            Copiar código
-          </button>
-        </div>
-      </section>
-
-      <section style={{ marginTop: 24 }}>
-        <h2>2. Ligar para outro dispositivo</h2>
-
-        <label htmlFor="remote-id">
-          Código mostrado no outro dispositivo
-        </label>
-
-        <input
-          id="remote-id"
-          value={remoteId}
-          onChange={(event) => setRemoteId(event.target.value)}
-          placeholder="Cole o código aqui"
+        <code
           style={{
             display: "block",
-            width: "100%",
             padding: 12,
-            marginTop: 8,
-            marginBottom: 12,
-            border: "1px solid #d8c5cd",
+            background: "#fff",
             borderRadius: 8,
-            boxSizing: "border-box",
+            overflowWrap: "anywhere",
           }}
-        />
+        >
+          {myId || "Conectando..."}
+        </code>
 
-        <button onClick={makeCall} disabled={!myId || connected || incoming}>
-          Ligar
+        <button
+          onClick={copyId}
+          disabled={!myId}
+          style={{ marginTop: 10 }}
+        >
+          Copiar código
         </button>
       </section>
+
+      {mode === "central" && (
+        <section style={{ marginTop: 24 }}>
+          <h2>2. Ligar para o elevador</h2>
+
+          <label htmlFor="remote-id">ID do elevador</label>
+
+          <input
+            id="remote-id"
+            value={remoteId}
+            onChange={(event) => setRemoteId(event.target.value)}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: 12,
+              marginTop: 8,
+              marginBottom: 12,
+              border: "1px solid #d8c5cd",
+              borderRadius: 8,
+              boxSizing: "border-box",
+            }}
+          />
+
+          <button
+            onClick={makeCall}
+            disabled={!myId || connected || incoming}
+          >
+            Ligar para o elevador
+          </button>
+        </section>
+      )}
 
       <section
         style={{
@@ -318,7 +396,7 @@ export default function TesteAudioPage() {
           padding: 20,
         }}
       >
-        <h2>3. Estado da ligação</h2>
+        <h2>Estado da ligação</h2>
 
         <p aria-live="polite">{status}</p>
 
