@@ -28,7 +28,9 @@ export default function CallPanel() {
       <section className="call-panel call-panel--incoming" aria-live="assertive">
         <div className="call-panel__header">
           <h2 className="call-panel__title">
-            Chamada recebida <span className="call-panel__demo">(demonstração)</span>
+            {activeCall.demo && (
+              <span className="call-panel__demo">(demonstração)</span>
+            )}
           </h2>
           <p className="call-panel__timer">
             Tempo em espera: <strong>{formatDuration(waitSeconds)}</strong>

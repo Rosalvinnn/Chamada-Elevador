@@ -217,7 +217,7 @@ export function CallCenterProvider({ children }) {
   }, [pushToast]);
 
   const simulateCall = useCallback(
-    (elevatorId) => {
+    (elevatorId, demo = true) => {
       const elevator = state.elevators.find(
         (item) => item.id === elevatorId
       );
@@ -235,6 +235,7 @@ export function CallCenterProvider({ children }) {
       dispatch({
         type: "SIMULATE_CALL",
         elevatorId,
+        demo,
       });
 
       pushToast(`Chamada iniciada: ${elevator.name}.`, "success");
@@ -306,7 +307,7 @@ export function CallCenterProvider({ children }) {
         if (!ativo) return;
 
         // Transforma a solicitação física em chamada no painel.
-        simulateCall(solicitacao.elevadorId);
+        simulateCall(solicitacao.elevadorId, false);
       } catch (erro) {
         console.error("Erro ao verificar chamadas físicas:", erro);
       } finally {
