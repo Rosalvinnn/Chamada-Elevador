@@ -8,6 +8,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
 } from "react";
 
@@ -26,6 +27,76 @@ export function CallCenterProvider({ children }) {
   );
 
   const [toasts, setToasts] = useState([]);
+
+  // Referências da conexão PeerJS.
+  const peerRef = useRef(null);
+  const connectionRef = useRef(null);
+  const [peerReady, setPeerReady] = useState(false);
+
+  // Inicializa a conexão PeerJS da central.
+  useEffect(() => {
+    let ativo = true;
+
+    async function iniciarPeer() {
+      try {
+        const { default: Peer } = await import("peerjs");
+
+        if (!ativo) return;
+
+        const peer = new Peer(undefined, {
+          config: {
+            iceServers: [
+              {
+                urls: "stun:stun.l.google.com:19302",
+              },
+            ],
+          },
+        });
+
+        peerRef.current = peer;
+
+        peer.on("open", (id) => {
+          if (!ativo) return;
+
+          console.log("Central PeerJS conectada:", id);
+          setPeerReady(true);
+        });
+
+        peer.on("error", (erro) => {
+          console.error("Erro PeerJS da central:", erro);
+          setPeerReady(false);
+        });
+
+        peer.on("disconnected", () => {
+          setPeerReady(false);
+          console.log("Central desconectada do servidor PeerJS.");
+        });
+
+        peer.on("close", () => {
+          setPeerReady(false);
+          console.log("Conexão PeerJS da central encerrada.");
+        });
+      } catch (erro) {
+        console.error("Erro ao iniciar PeerJS:", erro);
+      }
+    }
+
+    iniciarPeer();
+
+    return () => {
+      ativo = false;
+
+      if (connectionRef.current) {
+        connectionRef.current.close();
+        connectionRef.current = null;
+      }
+
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
+    };
+  }, []);
 
   // Carrega os elevadores do Back4App.
   useEffect(() => {
@@ -325,14 +396,74 @@ export function CallCenterProvider({ children }) {
     };
   }, [state.elevators, state.activeCall, simulateCall]);
 
+  // Atende a chamada e conecta a central à Raspberry.
   const answerCall = useCallback(() => {
-    if (!state.activeCall || state.activeCall.status !== "waiting") {
+    const call = state.activeCall;
+
+    if (!call || call.status !== "waiting") {
       return;
     }
 
-    dispatch({ type: "ANSWER_CALL" });
-    pushToast("Chamada atendida.", "success");
-  }, [state.activeCall, pushToast]);
+    if (!peerRef.current || !peerReady) {
+      pushToast(
+        "A central ainda está conectando ao serviço de chamadas.",
+        "warning"
+      );
+      return;
+    }
+
+    // ID PeerJS configurado no elevador.
+    const elevatorPeerId =
+      call.peerId || "unicap-elevador-bloco-a-1";
+
+    // Evita manter uma conexão anterior aberta.
+    if (connectionRef.current) {
+      connectionRef.current.close();
+      connectionRef.current = null;
+    }
+
+    console.log("Conectando ao elevador:", elevatorPeerId);
+
+    const connection = peerRef.current.connect(elevatorPeerId, {
+      reliable: true,
+    });
+
+    connectionRef.current = connection;
+
+    connection.on("open", () => {
+      console.log("Conexão estabelecida com o elevador!");
+
+      connection.send({
+        tipo: "central_conectada",
+        elevador: call.elevatorName,
+      });
+
+      dispatch({ type: "ANSWER_CALL" });
+
+      pushToast("Conexão com o elevador estabelecida.", "success");
+    });
+
+    connection.on("data", (dados) => {
+      console.log("Mensagem recebida da Raspberry:", dados);
+    });
+
+    connection.on("close", () => {
+      console.log("Conexão com o elevador encerrada.");
+
+      if (connectionRef.current === connection) {
+        connectionRef.current = null;
+      }
+    });
+
+    connection.on("error", (erro) => {
+      console.error("Erro na conexão com o elevador:", erro);
+
+      pushToast(
+        "Não foi possível conectar ao elevador.",
+        "error"
+      );
+    });
+  }, [state.activeCall, peerReady, pushToast]);
 
   const refuseCall = useCallback(() => {
     const call = state.activeCall;
@@ -350,6 +481,12 @@ export function CallCenterProvider({ children }) {
     const call = state.activeCall;
 
     if (!call) return;
+
+    // Encerra a conexão com a Raspberry.
+    if (connectionRef.current) {
+      connectionRef.current.close();
+      connectionRef.current = null;
+    }
 
     dispatch({ type: "END_CALL" });
 
