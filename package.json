@@ -18,5 +18,9 @@
     "peers": "^0.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6"
   }
 }
