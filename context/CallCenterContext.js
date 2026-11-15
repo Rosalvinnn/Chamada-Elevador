@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -17,6 +16,14 @@ import {
   createInitialState,
 } from "@/lib/callCenterReducer";
 
+import {
+  CENTRAL_PEER_ID,
+  criarOpcoesPeer,
+} from "@/lib/peerConfig";
+
+// Erros do PeerJS que NÃO significam que a central ficou offline.
+const ERROS_PEER_NAO_FATAIS = ["peer-unavailable", "webrtc"];
+
 const CallCenterContext = createContext(null);
 
 export function CallCenterProvider({ children }) {
@@ -30,8 +37,18 @@ export function CallCenterProvider({ children }) {
 
   // Referências da conexão PeerJS.
   const peerRef = useRef(null);
-  const connectionRef = useRef(null);
   const [peerReady, setPeerReady] = useState(false);
+
+  // Áudio da ligação atual.
+  const mediaCallRef = useRef(null); // ligação de áudio (WebRTC)
+  const controlConnRef = useRef(null); // canal de controle ("encerrar")
+  const localStreamRef = useRef(null); // microfone do atendente
+  const remoteAudioRef = useRef(null); // alto-falante do atendente
+  const answeringRef = useRef(false); // evita clique duplo em "Atender"
+  const activeCallRef = useRef(null); // chamada ativa (para callbacks)
+
+  // "idle" | "connecting" | "connected"
+  const [audioStatus, setAudioStatus] = useState("idle");
 
   const pushToast = useCallback((mensagem, tipo = "info") => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -50,6 +67,24 @@ export function CallCenterProvider({ children }) {
     );
   }, []);
 
+  // Mantém uma referência sempre atual da chamada ativa.
+  useEffect(() => {
+    activeCallRef.current = state.activeCall;
+  }, [state.activeCall]);
+
+  // Elemento de áudio que toca a voz do elevador.
+  useEffect(() => {
+    const audio = new Audio();
+    audio.autoplay = true;
+    remoteAudioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audio.srcObject = null;
+      remoteAudioRef.current = null;
+    };
+  }, []);
+
   // Inicializa a conexão PeerJS da central.
   useEffect(() => {
     let ativo = true;
@@ -60,17 +95,8 @@ export function CallCenterProvider({ children }) {
 
         if (!ativo) return;
 
-        // ID fixo para a Raspberry encontrar a central.
-        const peer = new Peer("unicap-central-atendimento", {
-          debug: 2,
-          config: {
-            iceServers: [
-              {
-                urls: "stun:stun.l.google.com:19302",
-              },
-            ],
-          },
-        });
+        // ID fixo: os elevadores só aceitam ligações deste ID.
+        const peer = new Peer(CENTRAL_PEER_ID, criarOpcoesPeer());
 
         peerRef.current = peer;
 
@@ -81,76 +107,44 @@ export function CallCenterProvider({ children }) {
           setPeerReady(true);
         });
 
-        // Recebe a conexão iniciada pela Raspberry.
-        peer.on("connection", (connection) => {
-          console.log(
-            "Raspberry iniciou uma conexão:",
-            connection.peer
-          );
-
-          if (connectionRef.current) {
-            connectionRef.current.close();
-          }
-
-          connectionRef.current = connection;
-
-          connection.on("open", () => {
-            console.log(
-              "Conexão com a Raspberry estabelecida!"
-            );
-
-            pushToast(
-              "Conexão recebida do elevador.",
-              "success"
-            );
-          });
-
-          connection.on("data", (dados) => {
-            console.log(
-              "Mensagem recebida da Raspberry:",
-              dados
-            );
-          });
-
-          connection.on("close", () => {
-            console.log("Raspberry encerrou a conexão.");
-
-            if (connectionRef.current === connection) {
-              connectionRef.current = null;
-            }
-          });
-
-          connection.on("error", (erro) => {
-            console.error(
-              "Erro na conexão com a Raspberry:",
-              erro
-            );
-          });
-        });
-
         peer.on("error", (erro) => {
           console.error("Erro PeerJS da central:", erro);
+
+          if (ERROS_PEER_NAO_FATAIS.includes(erro.type)) return;
+
           setPeerReady(false);
+
+          if (erro.type === "unavailable-id") {
+            pushToast(
+              "Já existe outra central aberta (ou a anterior ainda não expirou). Feche as outras abas e recarregue.",
+              "error"
+            );
+          }
         });
 
+        // Perdeu o servidor de sinalização: tenta reconectar mantendo o ID.
         peer.on("disconnected", () => {
           setPeerReady(false);
-          console.log(
-            "Central desconectada do servidor PeerJS."
-          );
+          console.log("Central desconectada do servidor PeerJS.");
+
+          setTimeout(() => {
+            if (
+              ativo &&
+              peerRef.current === peer &&
+              !peer.destroyed &&
+              peer.disconnected
+            ) {
+              peer.reconnect();
+            }
+          }, 3000);
         });
 
         peer.on("close", () => {
           setPeerReady(false);
-          console.log(
-            "Conexão PeerJS da central encerrada."
-          );
+          console.log("Conexão PeerJS da central encerrada.");
         });
       } catch (erro) {
-        console.error(
-          "Erro ao iniciar PeerJS:",
-          erro
-        );
+        console.error("Erro ao iniciar PeerJS:", erro);
       }
     }
 
@@ -158,11 +152,6 @@ export function CallCenterProvider({ children }) {
 
     return () => {
       ativo = false;
-
-      if (connectionRef.current) {
-        connectionRef.current.close();
-        connectionRef.current = null;
-      }
 
       if (peerRef.current) {
         peerRef.current.destroy();
@@ -529,15 +518,81 @@ export function CallCenterProvider({ children }) {
     simulateCall,
   ]);
 
-  // Atende a chamada iniciada pela Raspberry.
-  const answerCall = useCallback(() => {
+  // Libera microfone, alto-falante e conexões da ligação atual.
+  // Se avisarElevador for true, manda o elevador encerrar também
+  // (o PeerJS não avisa o outro lado ao fechar uma ligação de áudio).
+  const liberarAudio = useCallback((avisarElevador = false) => {
+    const controle = controlConnRef.current;
+    const ligacao = mediaCallRef.current;
+
+    controlConnRef.current = null;
+    mediaCallRef.current = null;
+    answeringRef.current = false;
+
+    if (controle) {
+      try {
+        if (avisarElevador && controle.open) {
+          controle.send({ tipo: "encerrar_chamada" });
+        }
+      } catch (erro) {
+        console.error("Erro ao avisar o elevador:", erro);
+      }
+
+      // Pequeno atraso para a mensagem sair antes de fechar o canal.
+      setTimeout(() => {
+        try {
+          controle.close();
+        } catch {
+          /* já estava fechado */
+        }
+      }, 300);
+    }
+
+    if (ligacao) {
+      try {
+        ligacao.close();
+      } catch {
+        /* já estava fechada */
+      }
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current
+        .getTracks()
+        .forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.pause();
+      remoteAudioRef.current.srcObject = null;
+    }
+
+    setAudioStatus("idle");
+  }, []);
+
+  // Atende a chamada: liga para o Raspberry do elevador.
+  const answerCall = useCallback(async () => {
     const call = state.activeCall;
 
     if (!call || call.status !== "waiting") {
       return;
     }
 
-    if (!peerRef.current || !peerReady) {
+    // Chamadas de demonstração não têm áudio: mantém o comportamento antigo.
+    if (call.demo) {
+      dispatch({ type: "ANSWER_CALL" });
+      pushToast("Chamada de demonstração atendida.", "success");
+      return;
+    }
+
+    if (answeringRef.current) {
+      return;
+    }
+
+    const peer = peerRef.current;
+
+    if (!peer || !peerReady) {
       pushToast(
         "A central ainda está conectando ao serviço de chamadas.",
         "warning"
@@ -545,36 +600,154 @@ export function CallCenterProvider({ children }) {
       return;
     }
 
-    const connection = connectionRef.current;
-
-    if (!connection || !connection.open) {
+    if (!call.peerId) {
       pushToast(
-        "Aguardando a conexão da Raspberry. Tente novamente em instantes.",
-        "warning"
+        "Este elevador não tem Peer ID cadastrado no Back4App.",
+        "error"
       );
       return;
     }
 
-    console.log(
-      "Aceitando chamada do elevador:",
-      call.elevatorName
-    );
+    answeringRef.current = true;
+    setAudioStatus("connecting");
 
-    connection.send({
-      tipo: "central_aceitou",
-      elevador: call.elevatorName,
-    });
+    let finalizado = false;
+    let timeout = null;
+    let aoErrarPeer = null;
 
-    dispatch({ type: "ANSWER_CALL" });
+    function limparEspera() {
+      if (timeout) clearTimeout(timeout);
+      if (aoErrarPeer) peer.off("error", aoErrarPeer);
+    }
 
-    pushToast(
-      "Chamada atendida. Conexão estabelecida.",
-      "success"
-    );
+    // Falha antes de o áudio conectar: volta a chamada para "aguardando".
+    function falharConexao(mensagem) {
+      if (finalizado) return;
+      finalizado = true;
+
+      limparEspera();
+      liberarAudio(true);
+      pushToast(mensagem, "error");
+    }
+
+    try {
+      // 1. Microfone do atendente (precisa de HTTPS e de permissão).
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          "Microfone indisponível. Use o site em HTTPS."
+        );
+      }
+
+      const microfone = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      });
+
+      localStreamRef.current = microfone;
+
+      // 2. O elevador não está com a página aberta / online.
+      aoErrarPeer = (erro) => {
+        if (erro.type === "peer-unavailable") {
+          falharConexao(
+            `${call.elevatorName} não está online. Verifique o dispositivo.`
+          );
+        }
+      };
+
+      peer.on("error", aoErrarPeer);
+
+      // 3. Canal de controle (usado para encerrar a ligação).
+      const controle = peer.connect(call.peerId, { reliable: true });
+      controlConnRef.current = controle;
+
+      controle.on("close", () => {
+        if (controlConnRef.current === controle) {
+          controlConnRef.current = null;
+        }
+      });
+
+      // 4. Ligação de áudio.
+      const ligacao = peer.call(call.peerId, microfone);
+
+      if (!ligacao) {
+        throw new Error("Não foi possível iniciar a ligação.");
+      }
+
+      mediaCallRef.current = ligacao;
+
+      timeout = setTimeout(() => {
+        falharConexao(
+          "O elevador não respondeu a tempo. Tente atender novamente."
+        );
+      }, 15000);
+
+      ligacao.on("stream", async (streamRemoto) => {
+        if (finalizado || mediaCallRef.current !== ligacao) return;
+        finalizado = true;
+
+        limparEspera();
+
+        const audio = remoteAudioRef.current;
+
+        if (audio) {
+          audio.srcObject = streamRemoto;
+
+          try {
+            await audio.play();
+          } catch (erro) {
+            console.error("Falha ao tocar o áudio do elevador:", erro);
+          }
+        }
+
+        setAudioStatus("connected");
+        dispatch({ type: "ANSWER_CALL" });
+        pushToast("Chamada atendida. Áudio conectado.", "success");
+      });
+
+      // O elevador caiu no meio da ligação.
+      ligacao.on("close", () => {
+        if (mediaCallRef.current !== ligacao) return; // fomos nós que encerramos
+
+        if (!finalizado) {
+          falharConexao("A ligação foi encerrada pelo elevador.");
+          return;
+        }
+
+        const chamada = activeCallRef.current;
+
+        liberarAudio(false);
+
+        if (chamada && chamada.status === "in-call") {
+          dispatch({ type: "END_CALL" });
+          salvarHistorico(chamada, "completed");
+          pushToast("O elevador encerrou a ligação.", "info");
+        }
+      });
+
+      ligacao.on("error", (erro) => {
+        console.error("Erro na ligação de áudio:", erro);
+        falharConexao("Erro na ligação de áudio.");
+      });
+    } catch (erro) {
+      console.error("Erro ao atender a chamada:", erro);
+
+      const mensagem =
+        erro?.name === "NotAllowedError"
+          ? "Permita o uso do microfone no navegador para atender."
+          : erro?.message || "Não foi possível atender a chamada.";
+
+      falharConexao(mensagem);
+    }
   }, [
     state.activeCall,
     peerReady,
     pushToast,
+    liberarAudio,
+    salvarHistorico,
   ]);
 
   // Recusa a chamada.
@@ -583,16 +756,7 @@ export function CallCenterProvider({ children }) {
 
     if (!call) return;
 
-    if (connectionRef.current) {
-      if (connectionRef.current.open) {
-        connectionRef.current.send({
-          tipo: "central_recusou",
-        });
-      }
-
-      connectionRef.current.close();
-      connectionRef.current = null;
-    }
+    liberarAudio(true);
 
     dispatch({ type: "REFUSE_CALL" });
 
@@ -601,6 +765,7 @@ export function CallCenterProvider({ children }) {
     pushToast("Chamada recusada.", "info");
   }, [
     state.activeCall,
+    liberarAudio,
     salvarHistorico,
     pushToast,
   ]);
@@ -611,16 +776,7 @@ export function CallCenterProvider({ children }) {
 
     if (!call) return;
 
-    if (connectionRef.current) {
-      if (connectionRef.current.open) {
-        connectionRef.current.send({
-          tipo: "encerrar_chamada",
-        });
-      }
-
-      connectionRef.current.close();
-      connectionRef.current = null;
-    }
+    liberarAudio(true);
 
     dispatch({ type: "END_CALL" });
 
@@ -629,6 +785,7 @@ export function CallCenterProvider({ children }) {
     pushToast("Chamada encerrada.", "info");
   }, [
     state.activeCall,
+    liberarAudio,
     salvarHistorico,
     pushToast,
   ]);
@@ -690,6 +847,8 @@ export function CallCenterProvider({ children }) {
       elevators: state.elevators ?? [],
       history: state.history ?? [],
       toasts,
+      audioStatus,
+      peerReady,
       pushToast,
       dismissToast,
       simulateCall,
@@ -704,6 +863,8 @@ export function CallCenterProvider({ children }) {
     }),
     [
       state,
+      audioStatus,
+      peerReady,
       toasts,
       pushToast,
       dismissToast,

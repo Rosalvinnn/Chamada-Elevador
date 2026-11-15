@@ -1,33 +1,31 @@
 "use client";
 
-/**
- * Painel principal de chamadas. Ele mostra uma destas três
- * situações:
- *
- *  1. Chamada recebida (esperando)  -> botões Atender / Recusar
- *  2. Chamada ativa (em ligação)    -> botão Encerrar chamada
- *  3. Nenhuma chamada               -> estado vazio + botão de teste
- *
- * A "transmissão de áudio" NÃO existe nesta versão. Sempre
- * que uma chamada é atendida, avisamos que o áudio real usará
- * WebRTC no futuro.
- */
-
 import { useCallCenter } from "@/context/CallCenterContext";
 import { formatDuration, secondsSince } from "@/lib/data";
 
 export default function CallPanel() {
-  const { activeCall, now, answerCall, refuseCall, endCall, simulateCall, elevators } =
-    useCallCenter();
+  const {
+    activeCall,
+    now,
+    answerCall,
+    refuseCall,
+    endCall,
+    simulateCall,
+    elevators,
+    audioStatus,
+    peerReady,
+  } = useCallCenter();
 
   // Situação 1: chamada recebida, aguardando decisão.
   if (activeCall && activeCall.status === "waiting") {
     const waitSeconds = secondsSince(activeCall.createdAt, now);
+    const conectando = audioStatus === "connecting";
 
     return (
       <section className="call-panel call-panel--incoming" aria-live="assertive">
         <div className="call-panel__header">
           <h2 className="call-panel__title">
+            Chamada recebida{" "}
             {activeCall.demo && (
               <span className="call-panel__demo">(demonstração)</span>
             )}
@@ -41,8 +39,13 @@ export default function CallPanel() {
           <p className="call-panel__elevator">{activeCall.elevatorName}</p>
           <p className="call-panel__location">{activeCall.location}</p>
           <p className="call-panel__note">
-            O áudio só começaria após o atendimento. Nesta versão, a
-            transmissão ainda não está implementada.
+            {activeCall.demo
+              ? "Chamada de demonstração: não há áudio."
+              : conectando
+                ? "Conectando o áudio com o elevador…"
+                : peerReady
+                  ? "Ao atender, o áudio com o elevador será conectado."
+                  : "Conectando ao serviço de chamadas…"}
           </p>
         </div>
 
@@ -51,13 +54,15 @@ export default function CallPanel() {
             type="button"
             className="button button--success button--large"
             onClick={answerCall}
+            disabled={conectando || (!activeCall.demo && !peerReady)}
           >
-            Atender chamada
+            {conectando ? "Conectando…" : "Atender chamada"}
           </button>
           <button
             type="button"
             className="button button--danger button--large"
             onClick={refuseCall}
+            disabled={conectando}
           >
             Recusar
           </button>
@@ -74,7 +79,10 @@ export default function CallPanel() {
       <section className="call-panel call-panel--active" aria-live="polite">
         <div className="call-panel__header">
           <h2 className="call-panel__title">
-            Chamada em andamento <span className="call-panel__demo">(demonstração)</span>
+            Chamada em andamento{" "}
+            {activeCall.demo && (
+              <span className="call-panel__demo">(demonstração)</span>
+            )}
           </h2>
           <p className="call-panel__timer">
             Duração: <strong>{formatDuration(durationSeconds)}</strong>
@@ -85,8 +93,11 @@ export default function CallPanel() {
           <p className="call-panel__elevator">{activeCall.elevatorName}</p>
           <p className="call-panel__location">{activeCall.location}</p>
           <p className="call-panel__note">
-            Sinalização concluída com sucesso. A transmissão bidirecional de
-            áudio será adicionada futuramente com WebRTC.
+            {activeCall.demo
+              ? "Chamada de demonstração: não há áudio."
+              : audioStatus === "connected"
+                ? "Áudio conectado. Fale com a pessoa no elevador."
+                : "Áudio indisponível."}
           </p>
         </div>
 
